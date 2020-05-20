@@ -1,0 +1,135 @@
+﻿
+let
+
+    handleInput = (uiInput as record, configField as nullable text) as record => 
+    // Gets interface input and ini file and validates it.
+    // Overlays ini file and input of interface fields.
+    // Throws errors if input is invalid or returns a proper data record.
+        let 
+            // Overlay input of uiInterface and configField
+            authenticationRecord = Extension.CurrentCredential(),
+            oauth_grant_type = uiInput[oauth_grant_type], // is mandatory, can not be null
+            passwordRecord = getPasswordRecordIfExists(authenticationRecord, oauth_grant_type),
+            
+            trimmedUiInput = Record.Transform(uiInput, Text.Trim), 
+            
+            completeUiInput = trimmedUiInput & passwordRecord,
+            shortedUiInput = deleteEmptyFieldsFromRecord(completeUiInput),
+            
+            overlayedInput = overlayUserInputAndIniFile(shortedUiInput, configField), // shortedUiInput and configField can be empty
+            
+            // Check if overlayedInput is valid and build dataRecord
+            dataRecord = buildDataRecord(overlayedInput, oauth_grant_type)   
+        in
+            dataRecord,
+
+    buildDataRecord = (overlayedInput as record, authenticationKind as text) as record =>
+    // Builds the DataRecord for the further program flow depending on the athentication kind.
+    // Throws error if user input is not valid to build the DataRecord.
+        let
+            emptyDataRecord = [],
+            configRecord =
+                if authenticationKind = "password"
+                then
+                    try
+                        Record.AddField(emptyDataRecord, "cmem_base_uri", overlayedInput[cmem_base_uri])
+                        & Record.AddField(emptyDataRecord, "oauth_client_id", overlayedInput[oauth_client_id])
+                        & Record.AddField(emptyDataRecord, "oauth_grant_type", overlayedInput[oauth_grant_type])
+                        & Record.AddField(emptyDataRecord, "oauth_user", overlayedInput[oauth_user])
+                        & Record.AddField(emptyDataRecord, "oauth_password_entry", overlayedInput[oauth_password_entry])
+                        & (if Record.HasFields(overlayedInput, "dp_api_endpoint")
+                           then Record.AddField(emptyDataRecord, "dp_api_endpoint", overlayedInput[dp_api_endpoint])
+                           else [])
+                        & (if Record.HasFields(overlayedInput, "oauth_token_uri")
+                           then Record.AddField(emptyDataRecord, "oauth_token_uri", overlayedInput[oauth_token_uri])
+                           else [])
+                    otherwise
+                        error Error.Record("USER_INPUT_ERROR", "Input not valid for password flow.")
+                else
+                    try
+                        Record.AddField(emptyDataRecord, "cmem_base_uri", overlayedInput[cmem_base_uri])
+                        & Record.AddField(emptyDataRecord, "oauth_grant_type", overlayedInput[oauth_grant_type])
+                        & Record.AddField(emptyDataRecord, "oauth_client_id", overlayedInput[oauth_client_id])
+                        & Record.AddField(emptyDataRecord, "oauth_client_secret", overlayedInput[oauth_client_secret])
+                        & (if Record.HasFields(overlayedInput, "dp_api_endpoint")
+                           then Record.AddField(emptyDataRecord, "dp_api_endpoint", overlayedInput[dp_api_endpoint])
+                           else [])
+                        & (if Record.HasFields(overlayedInput, "oauth_token_uri")
+                           then Record.AddField(emptyDataRecord, "oauth_token_uri", overlayedInput[oauth_token_uri])
+                           else [])
+                    otherwise
+                        error Error.Record("USER_INPUT_ERROR", "Input not valid for client credentials flow.")
+        in
+            configRecord,
+
+    getPasswordRecordIfExists = (authenticationRecord as record, oauth_grant_type as text) as record =>
+    // If authenticationKind is set to password returns username and password in a record.
+    // If authenticationKind is set to client_credentials returns client_secret in a record.
+    // Throws error if input fields are not proper filled concerning the chosen grant type:
+    // - For grant type password: username field and password field must be filled
+    // - For grant type client_credentials: only password field must be filled
+        let
+            oauth_password_entry = authenticationRecord[Password],
+            passwordPart =
+                if oauth_password_entry=""
+                then Error.Record("USER_INPUT_ERROR", "Password not set.") // error if password field is empty
+                else // error field is filled
+                    if oauth_grant_type="password"
+                    then [oauth_password_entry=oauth_password_entry]
+                    else [oauth_client_secret=oauth_password_entry],
+            userPart =
+                if oauth_grant_type="password"
+                then
+                    let
+                        oauth_user = Text.Trim(authenticationRecord[Username]),
+                        _oauth_user =
+                            if oauth_user = "" 
+                            then Error.Record("USER_INPUT_ERROR", "Username not set.")
+                            else [oauth_user=oauth_user]     
+                    in
+                        _oauth_user
+                else
+                    [], // client credentials has no user
+            passwordRecord = passwordPart & userPart
+        in
+            passwordRecord,
+
+    deleteEmptyFieldsFromRecord = (record as record) as record =>
+    // Deletes all fields form a record that have the value null.
+    // Returns the empty record [], if record consist
+    // of fields with value null.
+        let
+            tmpTable = Record.ToTable(record), // 2 Columns: Name Value
+            _tmpTable = Table.SelectRows(tmpTable, each [Value] <> null),
+            columnLists = Table.ToColumns(_tmpTable),
+            nameList = columnLists{0},
+            valueList = columnLists{1},
+            outputRecord = Record.FromList(valueList, nameList)   
+        in
+            outputRecord,
+    
+    Record.Transform = (record as record, function as function) as record =>
+        let
+            fieldNames = Record.FieldNames(record),
+            valueList = Record.ToList(record),
+            transformedValueList = List.Transform(valueList, function),
+            outputRecord = Record.FromList(transformedValueList, fieldNames) 
+        in
+            outputRecord,
+
+    overlayUserInputAndIniFile = (uiInput as record, configField as nullable text) as record =>
+        let
+            configRecord = if configField is null then [] else readConfigRecordFromIni(configField), // throws errors if config file is not valid
+            overlayedInput = Record.Combine({configRecord, uiInput}) // interface input overwrites input of config file
+        in
+            overlayedInput
+
+in
+    [
+        handleInput = handleInput,
+        buildDataRecord = buildDataRecord,
+        getPasswordRecordIfExists = getPasswordRecordIfExists,
+        deleteEmptyFieldsFromRecord = deleteEmptyFieldsFromRecord,
+        Record.Transform = Record.Transform,
+        overlayUserInputAndIniFile = overlayUserInputAndIniFile
+    ]

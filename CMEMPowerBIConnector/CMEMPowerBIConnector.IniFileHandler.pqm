@@ -1,0 +1,101 @@
+﻿let
+
+    readConfigRecordFromIni = (initext as text) as record => 
+    // Returns record with configuration settings.
+    // It takes the first entry for OAUTH_GRANT_TYPE out of the given initext to set the oAuthGrantType local variable.
+    // Now it searches the initext for attribute value pairs which belong to that OAUTH_GRANT_TYPE.
+    // Always the first occurance of an attribute value pair is taken.
+        let
+            iniTable = convertIniTextToTable(initext),
+            
+            configRecord = createConfigRecord(iniTable),
+            configRecordNotEmpty = // check if configRecord is empty
+                if Record.FieldCount(configRecord) = 0
+                then error Error.Record("INI_CONFIG_ERROR", "Ini File does not contain attributes DP_API_ENDPOINT or OAUTH_TOKEN_URI.")
+                else configRecord,
+            checkedConfigRecord = // check if configRecord has empty entries
+                if List.Contains(Record.ToList(configRecordNotEmpty), "")
+                then
+                    error Error.Record("INI_CONFIG_ERROR", "Ini File has empty attribute values.")
+                else
+                    configRecord
+        in
+            checkedConfigRecord,
+                     
+    convertIniTextToTable = (initext as text) as table =>
+    // Reads in an ini text as table that has the two columns "Attribute" and "Value"
+    // Empty rows and comment lines (#) of the ini file are skipped.
+    // If initext is empty convertIniTextToTable returns an empty table.
+        let
+            rawTable = Csv.Document(initext, [Delimiter="#(cr)", Columns=1]),
+            renamedTable = Table.RenameColumns(rawTable, {"Column1", "Attribute"}),
+            typedTable = Table.TransformColumnTypes(renamedTable, {"Attribute", type text}),
+            trimedTable = Table.TransformColumns(typedTable, {"Attribute", Text.Trim}),
+            filterFunction = each
+                let
+                    firstChar = Text.Start([Attribute], 1),
+                    pass = firstChar <> "[" and // exclude section rows,
+                           firstChar <> "" and // empty rows,
+                           firstChar <> "#" // comments
+                in
+                    pass,
+            filteredTable = Table.SelectRows(trimedTable, filterFunction),
+            getTextNewColumn = each
+                let
+                    offset = Text.PositionOf([Attribute], "=")+1,
+                    textNewColumn = Text.Range([Attribute], offset)
+                in
+                    textNewColumn,
+            twoColumnTable = Table.AddColumn(filteredTable, "Value", getTextNewColumn, type text),
+            shortenLeftColumn = each
+                let
+                    count = Text.PositionOf(_, "="),
+                    shortenedText = Text.Start(_, count)
+                in
+                    shortenedText,
+            shortenedTable = Table.TransformColumns(twoColumnTable, {"Attribute", shortenLeftColumn}),
+            finallyTable = Table.TransformColumns(shortenedTable, { {"Attribute", Text.Trim}, {"Value", Text.Trim} })
+        in
+            finallyTable,
+
+    createConfigRecord = (iniTable as table) as record =>
+    // Reads DP_API_ENDPOINT and OAUTH_TOKEN_URI in if they exist in the ini file.
+    // Returns empty record.
+        let
+            attributesColumn = Table.Column(iniTable, "Attribute"),
+            hasDpApiEndpoint = List.Contains(attributesColumn, "DP_API_ENDPOINT"),
+            hasOauthTokenUri = List.Contains(attributesColumn, "OAUTH_TOKEN_URI"),
+            
+            dp_api_endpoint =
+                if hasDpApiEndpoint
+                then Table.SelectRows(iniTable, each [Attribute] = "DP_API_ENDPOINT")[Value]{0}
+                else null,
+            
+            oauth_token_uri = 
+                if hasOauthTokenUri
+                then Table.SelectRows(iniTable, each [Attribute] = "OAUTH_TOKEN_URI")[Value]{0}
+                else null,
+            
+            emptyConfigRecord = [],
+
+            dpApiEndpointRecord =
+                if hasDpApiEndpoint
+                then [dp_api_endpoint=dp_api_endpoint]
+                else [],
+
+            oAuthTokenUriRecord = 
+                if hasOauthTokenUri 
+                then [oauth_token_uri=oauth_token_uri] 
+                else [],
+
+            configRecord = dpApiEndpointRecord & oAuthTokenUriRecord
+
+        in
+            configRecord
+
+in
+    [
+        readConfigRecordFromIni=readConfigRecordFromIni,
+        convertIniTextToTable=convertIniTextToTable,
+        createConfigRecord=createConfigRecord
+    ]  

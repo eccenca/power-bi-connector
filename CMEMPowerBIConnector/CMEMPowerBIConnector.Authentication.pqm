@@ -1,0 +1,78 @@
+﻿
+let
+
+    // Functions to set up endpoints for authentication
+
+    dpApiEndpoint = (DP_API_ENDPOINT as text, CMEM_BASE_URI as text) as text =>
+        // If DP_API_ENDPOINT not given, use CMEM_BASE_URI
+        let
+            Source = if DP_API_ENDPOINT = null or DP_API_ENDPOINT = "" 
+                        then CMEM_BASE_URI & "/dataplatform/proxy"
+                        else DP_API_ENDPOINT
+        in
+            Source,
+
+    oAuthTokenUri = (OAUTH_TOKEN_URI as nullable text, CMEM_BASE_URI as text) as text =>
+        // If OAUTH_TOKEN_URI not given, use CMEM_BASE_URI
+        let
+            Source = if OAUTH_TOKEN_URI = null or OAUTH_TOKEN_URI = "" 
+                        then CMEM_BASE_URI & "/auth/realms/cmem/protocol/openid-connect/token"
+                        else OAUTH_TOKEN_URI
+        in
+            Source,
+
+    GetAccessToken = (token_uri as text, dataRecord as record) as text =>
+        let 
+            oauth_grant_type = dataRecord[oauth_grant_type],
+            postContent = 
+                if oauth_grant_type = "password"
+                then postContentFromDataRecordPassword(dataRecord)
+                else postContentFromDataRecordClientCredentials(dataRecord),
+            
+            FormatAsJson = Json.Document(
+                Web.Contents(token_uri,
+                    [
+                        Headers = [
+                            #"Content-Type"="application/x-www-form-urlencoded"
+                        ],
+                        Content = Text.ToBinary(postContent),
+                        ManualStatusHandling = {401}
+                    ]
+                )
+            ),
+
+            // Gets token from the Json response
+            AccessToken = FormatAsJson[access_token],
+            AccessTokenHeader = "Bearer " & AccessToken
+        in
+            AccessTokenHeader,
+
+    postContentFromDataRecordPassword = (dataRecord as record) as text =>
+        let
+            oauth_client_id = dataRecord[oauth_client_id],
+            oauth_user = dataRecord[oauth_user],
+            oauth_password_entry = dataRecord[oauth_password_entry],
+            contentText =
+                "client_id=" & oauth_client_id
+                & "&username=" & oauth_user
+                & "&password=" & oauth_password_entry
+                & "&grant_type=password"
+        in
+            contentText,
+
+    postContentFromDataRecordClientCredentials = (dataRecord as record) as text =>
+        let
+            oauth_client_id = dataRecord[oauth_client_id],
+            oauth_client_secret = dataRecord[oauth_client_secret],
+            contentText =
+                "client_id=" & oauth_client_id
+                & "&client_secret=" & oauth_client_secret
+                & "&grant_type=client_credentials"
+        in
+            contentText
+
+
+in
+    [
+        GetAccessToken=GetAccessToken, dpApiEndpoint=dpApiEndpoint, oAuthTokenUri=oAuthTokenUri
+    ]

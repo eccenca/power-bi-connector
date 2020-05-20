@@ -1,0 +1,131 @@
+﻿let
+
+    hasQueryParameter = (querytext as text) as logical => 
+    // returns true if querytext has at least on query parameter
+        let
+            start = Text.PositionOf(querytext as text, "{{"),
+            end = Text.PositionOf(querytext as text, "}}"),
+            containsParameter =
+                if start > 0 and end > 0 and start < end then
+                    if start + 2 = end then // expression {{}} will be false
+                        false
+                    else
+                        true
+                else
+                    false
+        in
+            containsParameter,
+
+    transformParameterQueryIntoFunction = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, querytext as text) as function =>
+    // generates a function that binds values to the parameters of the parameterquery
+        let
+            queryParameters = getQueryParameters(querytext),
+            querytextWithWildcards = replaceQueryParametersWithWildcards(
+                                        querytext,
+                                        queryParameters
+                                     ),
+            buildedFunction = buildFunction(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querytextWithWildcards, queryParameters)
+        in
+            buildedFunction,
+    
+    getQueryParameters = (querytext as text) as record =>
+    // extracts query variables e.g. {{x}} from the querytext
+    // retruns a record with 2 lists queryVariableStrings, queryVariableNames
+    // queryVariableStrings contain the exact text between the {{ }}
+    // queryVariableNames contain only the varableName e.g. x
+        let
+            seperatedQuerytext = Text.Split(querytext, "}}"),
+            removedQuerytext = List.RemoveLastN(seperatedQuerytext, 1),
+            queryParameterContents = List.Transform( removedQuerytext, each Text.RemoveRange(_, 0, Text.PositionOf(_, "{{")+2) ),
+            queryParameterNames = List.Transform( queryParameterContents, each Text.Trim(_) )
+        in
+            [queryParameterContents=queryParameterContents, queryParameterNames=queryParameterNames],
+    
+    replaceQueryParametersWithWildcards = (querytext as text, queryParameters as record) as text =>
+    // replaces query parameters in querytext with wildcards
+    // the used wildcards belong to the Text.Format build in function
+        let
+            queryParameterContents = queryParameters[queryParameterContents], // actual text berween {{}}
+            queryParameterNames = queryParameters[queryParameterNames], // parameter names
+
+            bundleList = List.Zip( {queryParameterContents, queryParameterNames} ),
+            querytextWithWildcards =
+                List.Accumulate(
+                    bundleList,
+                    querytext,
+                    (a as text, b as list) => replaceQueryParameter(a, b{0}, b{1})
+                )
+        in
+            querytextWithWildcards,
+    
+    replaceQueryParameter = (querytext as text, queryparametercontent as text, queryparametername as text) as text =>
+    // replaces one query parameter with the corresponding wildcard
+        let
+            replacedQueryParamter = Text.Replace(querytext, "{{" & queryparametercontent & "}}" , "#[" & queryparametername & "]")
+        in
+            replacedQueryParamter,
+
+    buildFunction = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text,  dataRecord as record,
+                     querytextWithWildcards as text, queryParameters as record
+                    ) as function =>
+    // builds a function of the form
+    //   let queryText = (p1, p2) => Text.Format(querytextWithWildcards, [p1=p1, p2=p2])
+    //   in FetchSPARQLQueryResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, queryText)
+        let
+            queryParameterNames = queryParameters[queryParameterNames],
+            _OAUTH_TOKEN_URI = if OAUTH_TOKEN_URI = null then "null" else """" & OAUTH_TOKEN_URI & """",
+
+            functionText =
+                "(" & Text.Combine(queryParameterNames, ", ") 
+                    & ") =>
+                        let
+                            queryText = Text.Format(" 
+                            & """" & Text.Replace(querytextWithWildcards, "#(0022)", "#(0022)#(0022)") & """" // replace simple " with "" that simple " is escaped
+                            & ", ["
+                            & Text.Combine(
+                                  List.Transform(
+                                      queryParameterNames,
+                                      each _ & "=" & _
+                                  ),
+                                  ", "
+                              )
+                            & "]"
+                            & ")
+                        in
+                            FetchSPARQLQueryResult(" & _OAUTH_TOKEN_URI & ", """ & DP_API_ENDPOINT & """, " & getDataRecordText(dataRecord) & ", queryText)
+                "
+        in
+            Expression.Evaluate(functionText, #shared),
+
+    getDataRecordText = (dataRecord as record) as text =>
+        let
+            oauth_grant_type = dataRecord[oauth_grant_type],
+            dataRecordText =
+                    "[" & 
+                        (
+                            if oauth_grant_type = "password"
+                            then                 
+                                "oauth_client_id=""" & dataRecord[oauth_client_id] &""", "
+                                &"oauth_grant_type=""" & dataRecord[oauth_grant_type] &""", "
+                                &"oauth_user=""" & dataRecord[oauth_user] &""", "
+                                &"oauth_password_entry=""" & dataRecord[oauth_password_entry] &""""
+                            else
+                                "cmem_base_uri=""" & dataRecord[cmem_base_uri] &""", "
+                                &"oauth_grant_type=""" & dataRecord[oauth_grant_type] &""", "
+                                &"oauth_client_id=""" & dataRecord[oauth_client_id] &""", "
+                                &"oauth_client_secret=""" & dataRecord[oauth_client_secret] &""""
+                        )
+                     & "]"
+        in
+            dataRecordText
+
+
+in
+    [
+        hasQueryParameter=hasQueryParameter,
+        transformParameterQueryIntoFunction=transformParameterQueryIntoFunction,
+        getQueryParameters=getQueryParameters,
+        replaceQueryParametersWithWildcards=replaceQueryParametersWithWildcards,
+        replaceQueryParameter=replaceQueryParameter,
+        buildFunction=buildFunction
+    ]  

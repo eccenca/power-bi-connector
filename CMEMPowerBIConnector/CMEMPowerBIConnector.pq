@@ -1,0 +1,240 @@
+﻿// This file contains your Data Connector logic
+section CMEMPowerBIConnector;
+
+[DataSource.Kind="eccenca Corporate Memory", Publish="CMEMPowerBIConnector.Publish"]
+shared CMEMPowerBIConnector.Contents = Value.ReplaceType(CMEMPowerBIConnectorImpl, CMEMPowerBIConnectorType);
+
+// Data Source Kind description
+#"eccenca Corporate Memory" = [
+    Authentication = [
+         UsernamePassword = [
+            UsernameLabel = Extension.LoadString("UsernameLabelText"),
+            PasswordLabel = Extension.LoadString("PasswordLabelText"),
+            Label = Extension.LoadString("PasswordAreaLabelText")
+         ]
+    ]//,
+    //Label = Extension.LoadString("DataSourceLabel")
+];
+
+// Data Source UI publishing description
+CMEMPowerBIConnector.Publish = [
+    Beta = true,
+    Category = "Other",
+    ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
+    LearnMoreUrl = "https://powerbi.microsoft.com/",
+    SourceImage = CMEMPowerBIConnector.Icons,
+    SourceTypeImage = CMEMPowerBIConnector.Icons
+];
+
+CMEMPowerBIConnector.Icons = [
+    Icon16 = { Extension.Contents("CMEMPowerBIConnector16.png"), Extension.Contents("CMEMPowerBIConnector20.png"), Extension.Contents("CMEMPowerBIConnector24.png"), Extension.Contents("CMEMPowerBIConnector32.png") },
+    Icon32 = { Extension.Contents("CMEMPowerBIConnector32.png"), Extension.Contents("CMEMPowerBIConnector40.png"), Extension.Contents("CMEMPowerBIConnector48.png"), Extension.Contents("CMEMPowerBIConnector64.png") }
+];
+
+CMEMPowerBIConnectorType = type function (
+    
+    cmem_base_uri as (
+        type text
+        meta[
+            Documentation.SampleValues = {},
+            Documentation.FieldCaption = "Corporate Memory Base URI",
+            Documentation.FieldDescription = "URI to Corporate Memory e.g. http://docker.local"
+        ]
+    ),
+
+    oauth_grant_type as (
+        type text
+        meta [
+            Documentation.FieldCaption = "Grant type",
+            Documentation.AllowedValues = {"password", "client_credentials" }
+        ]
+    ),
+    
+    oauth_client_id as (
+        type text
+        meta[
+            Documentation.SampleValues = {},
+            Documentation.FieldCaption = "Client ID",
+            Documentation.FieldDescription = "Fill in together with ""CMEM Base URI"" to enable password authentication flow."
+        ]
+    ),
+    
+    optional configField as (
+        type text
+        meta [
+                Documentation.FieldCaption = "Config ini file",
+                Documentation.FieldDescription = "[For administrators only] Here a text block of a config ini file can be placed.
+                                                  The input from above will take precedence over the ini text if there are ambiguous values.",
+                Documentation.SampleValues = {},
+                Formatting.IsMultiLine = true,
+                Formatting.IsCode = true
+            ]
+    )
+
+) as table meta [
+    Documentation.Name = "eccenca Corporate Memory"
+];
+
+//--------------------------------------------------------------------------------//
+
+CMEMPowerBIConnectorImpl = (cmem_base_uri as text,
+                            oauth_grant_type as text,
+                            oauth_client_id as text,
+                            optional configField as text
+                           ) as any => 
+    let
+        uiInput = [cmem_base_uri=cmem_base_uri, oauth_grant_type=oauth_grant_type, oauth_client_id=oauth_client_id],
+        dataRecord = handleInput(uiInput, configField), // record with validated data for grant type passwort or grant type client credentials
+        
+        url_DP_API_Endpoint = dpApiEndpoint(
+            if Record.HasFields(dataRecord, "dp_api_endpoint") then dataRecord[dp_api_endpoint] else "",
+            cmem_base_uri
+        ),
+        oAuthTokenUri = oAuthTokenUri(
+            if Record.HasFields(dataRecord, "oauth_token_uri") then dataRecord[oauth_token_uri] else "",
+            cmem_base_uri
+        ),
+
+        querycatalog = GetQueriesFromCatalog(oAuthTokenUri, url_DP_API_Endpoint, dataRecord),
+        navTable = GenerateNavTable(oAuthTokenUri, url_DP_API_Endpoint, dataRecord, querycatalog)
+    in
+        navTable;
+
+GetQueriesFromCatalog = (OAUTH_TOKEN_URI as nullable text, url_DP_API_Endpoint as text, dataRecord as record) as table =>
+    let
+        body = "query=SELECT ?query ?name ?text
+                FROM <https://ns.eccenca.com/data/queries/>
+                WHERE {
+                ?query a <https://vocab.eccenca.com/shui/SparqlQuery> ;
+                <http://www.w3.org/2000/01/rdf-schema#label> ?name ;
+                <https://vocab.eccenca.com/shui/queryText> ?text ;
+                <https://vocab.eccenca.com/shui/queryType> ""SELECT"" . }", // TODO Filter parametrized queries
+        
+        queryCatalog = FetchResult(OAUTH_TOKEN_URI, url_DP_API_Endpoint, dataRecord, body)
+    in
+        queryCatalog;
+
+shared FetchResult = (OAUTH_TOKEN_URI as nullable text, url_DP_API_Endpoint as text, dataRecord as record, body as text) as table =>
+    let
+        AccessTokenHeader = GetAccessToken(OAUTH_TOKEN_URI, dataRecord),
+
+        url = url_DP_API_Endpoint & "/default/sparql",
+        headers = 
+            [
+                #"Content-Type" = "application/x-www-form-urlencoded",
+                #"Accept"= "text/csv",
+                #"Authorization" = AccessTokenHeader
+            ],
+
+        CsvDoc = Csv.Document(
+            Web.Contents(
+                url,
+                [
+                    Headers = headers,
+                    Content = Text.ToBinary(body),
+                    ManualStatusHandling = {401}
+                ]
+            ),
+            [Delimiter=",", QuoteStyle=QuoteStyle.Csv]
+        ),
+        Csv = Table.PromoteHeaders(CsvDoc)
+    in
+        Csv;
+
+GenerateNavTable = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, querycatalog as table) as table =>
+// get table in the form: {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}
+    let
+        recordList = ConvertQuerycatalogToRecordList(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querycatalog, {}),
+        preparedNavtable = Table.FromRecords(recordList),
+        navTable = Table.ToNavigationTable(preparedNavtable, {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
+    in
+        navTable;
+
+ConvertQuerycatalogToRecordList = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, inputTable as table, outputList as list) as list =>
+    let
+        currentOutput =
+            if
+                Table.IsEmpty(inputTable)
+            then
+                outputList
+            else
+                let 
+                    firstRow = Table.First(inputTable),
+                        
+                        querytext = firstRow[text], // relevant columns of querycatalog are text and name
+                        name = firstRow[name],
+                        data = HandleQueryText(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querytext),
+                        itemKind = if hasQueryParameter(querytext) then "Function" else "Table",
+                        newRecord = [
+                                        Name=name,
+                                        Data=data,
+                                        ItemKind=itemKind,
+                                        ItemName=itemKind,
+                                        IsLeaf=true
+                                    ],
+                    
+                    _outputList = outputList & {newRecord},
+                    _inputTable = Table.RemoveFirstN(inputTable, 1),
+                    recursiveResult = @ConvertQuerycatalogToRecordList(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, _inputTable, _outputList)
+                in
+                    recursiveResult
+    in
+        currentOutput;
+
+HandleQueryText = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, queryText as text) as any => 
+// converts parameter queries into functions and normal queries into tables
+    let
+        handledQueryText=
+            if hasQueryParameter(queryText)
+            then transformParameterQueryIntoFunction(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, queryText) // returns function
+            else FetchSPARQLQueryResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, queryText) // returns table
+    in
+        handledQueryText;
+
+shared FetchSPARQLQueryResult = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, queryText as text) as table =>    
+    let
+        tryResultRecord = try
+            let
+                body = "query=" & Uri.EscapeDataString(queryText) & "&timeout=600000&distinct=true",
+                csv = FetchResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, body),
+                csvConvertedColumnTypes = Table.ConvertColumnTypes(csv)
+            in
+                csvConvertedColumnTypes,
+        outputTable =
+            if 
+                tryResultRecord[HasError]
+            then
+                Table.FromRecords({tryResultRecord[Error]})
+            else
+                tryResultRecord[Value]
+    in
+         outputTable;
+
+//
+// imports
+//
+
+Extension.LoadFunction = (name as text) =>
+    let
+        binary = Extension.Contents(name),
+        asText = Text.FromBinary(binary)
+    in
+        Expression.Evaluate(asText, #shared);
+
+Table.ToNavigationTable = Extension.LoadFunction("ToNavigationTable.pqm");
+Table.ConvertColumnTypes = Extension.LoadFunction("TableConvertColumnTypes.pqm");
+
+Authentication = Extension.LoadFunction("CMEMPowerBIConnector.Authentication.pqm");
+GetAccessToken = Authentication[GetAccessToken];
+dpApiEndpoint = Authentication[dpApiEndpoint];
+oAuthTokenUri = Authentication[oAuthTokenUri];
+
+ParameterQueryHandler = Extension.LoadFunction("CMEMPowerBIConnector.ParameterQueryHandler.pqm");
+hasQueryParameter = ParameterQueryHandler[hasQueryParameter];
+transformParameterQueryIntoFunction = ParameterQueryHandler[transformParameterQueryIntoFunction];
+
+IniFileHandler = Extension.LoadFunction("CMEMPowerBIConnector.IniFileHandler.pqm");
+shared readConfigRecordFromIni = IniFileHandler[readConfigRecordFromIni]; // import for usage in ParameterQueryHandler
+
+InterfaceInputHandler = Extension.LoadFunction("CMEMPowerBIConnector.InterfaceInputHandler.pqm");
+handleInput = InterfaceInputHandler[handleInput];
