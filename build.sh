@@ -10,4 +10,4 @@ mkdir -p ./${TARGET_PATH}
 
 zip -r -j ${TARGET_PATH}/${FILE_PREFIX}-${VERSION}.mez ${SOURCES_PATH}/*
 
-echo "Zipped '${SOURCES_PATH}/*' as '${TARGET_PATH}/${FILE_PREFIX}-${VERSION}.mez'"
+echo "Zipped '${SOURCES_PATH}/*' as '${TARGET_PATH}/${FILE_PREFIX}-${VERSION}.mez'" 
