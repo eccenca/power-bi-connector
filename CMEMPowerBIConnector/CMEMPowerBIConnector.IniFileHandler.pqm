@@ -11,12 +11,12 @@
             configRecord = createConfigRecord(iniTable),
             configRecordNotEmpty = // check if configRecord is empty
                 if Record.FieldCount(configRecord) = 0
-                then error Error.Record("INI_CONFIG_ERROR", "Ini File does not contain attributes DP_API_ENDPOINT or OAUTH_TOKEN_URI.")
+                then error Error.Record(Extension.LoadString("error_IniFileHandler_prefix"), Extension.LoadString("error_IniFileHandler_01"))
                 else configRecord,
             checkedConfigRecord = // check if configRecord has empty entries
                 if List.Contains(Record.ToList(configRecordNotEmpty), "")
                 then
-                    error Error.Record("INI_CONFIG_ERROR", "Ini File has empty attribute values.")
+                    error Error.Record(Extension.LoadString("error_IniFileHandler_prefix"), Extension.LoadString("error_IniFileHandler_02"))
                 else
                     configRecord
         in
