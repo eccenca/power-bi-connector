@@ -21,6 +21,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      
+      - name: Declare some variables
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=VERSION::$(git describe --always --dirty)"
         
       - name: Build project # This would actually build your project, using zip for an example artifact
         run: ./build.sh
@@ -31,8 +37,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.vars.outputs.VERSION }}
+          release_name: Release ${{ steps.vars.outputs.VERSION }}
           draft: false
           prerelease: false
       
@@ -43,7 +49,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./target/CMEMPowerBIConnector-${{ github.ref }}.mez
-          asset_name: CMEMPowerBIConnector-${{ github.ref }}.mez
+          asset_path: ./target/CMEMPowerBIConnector-${{ steps.vars.outputs.VERSION }}.mez
+          asset_name: CMEMPowerBIConnector-${{ steps.vars.outputs.VERSION }}.mez
           asset_content_type: application/zip
-          
