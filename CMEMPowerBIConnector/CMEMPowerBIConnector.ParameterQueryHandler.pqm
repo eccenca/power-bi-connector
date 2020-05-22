@@ -16,7 +16,7 @@
         in
             containsParameter,
 
-    transformParameterQueryIntoFunction = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, querytext as text) as function =>
+    transformParameterQueryIntoFunction = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, queryName as text, querytext as text) as function =>
     // generates a function that binds values to the parameters of the parameterquery
         let
             queryParameters = getQueryParameters(querytext),
@@ -24,7 +24,7 @@
                                         querytext,
                                         queryParameters
                                      ),
-            buildedFunction = buildFunction(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querytextWithWildcards, queryParameters)
+            buildedFunction = buildFunction(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querytextWithWildcards, queryName, queryParameters)
         in
             buildedFunction,
     
@@ -66,7 +66,7 @@
             replacedQueryParamter,
 
     buildFunction = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text,  dataRecord as record,
-                     querytextWithWildcards as text, queryParameters as record
+                     querytextWithWildcards as text, queryName as text, queryParameters as record
                     ) as function =>
     // builds a function of the form
     //   let queryText = (p1, p2) => Text.Format(querytextWithWildcards, [p1=p1, p2=p2])
@@ -74,10 +74,19 @@
         let
             queryParameterNames = queryParameters[queryParameterNames],
             _OAUTH_TOKEN_URI = if OAUTH_TOKEN_URI = null then "null" else """" & OAUTH_TOKEN_URI & """",
-
+            documentationLongDescription = Text.Format(
+                Extension.LoadString("buildFunctionDocumentationLongDescription"),
+                {queryName}
+            ),
             functionText =
-                "(" & Text.Combine(queryParameterNames, ", ") 
-                    & ") =>
+                "
+                let
+                    functionType = type function(" & Text.Combine(queryParameterNames, " as any, ") & " as any) as any
+                    meta [
+                        Documentation.Name = """ & queryName & """,
+                        Documentation.LongDescription = """ & documentationLongDescription & """
+                    ],
+                    functionImplementation = (" & Text.Combine(queryParameterNames, ", ") & ") =>
                         let
                             queryText = Text.Format(" 
                             & """" & Text.Replace(querytextWithWildcards, "#(0022)", "#(0022)#(0022)") & """" // replace simple " with "" that simple " is escaped
@@ -92,7 +101,10 @@
                             & "]"
                             & ")
                         in
-                            FetchSPARQLQueryResult(" & _OAUTH_TOKEN_URI & ", """ & DP_API_ENDPOINT & """, " & getDataRecordText(dataRecord) & ", queryText)
+                            FetchSPARQLQueryResult(" & _OAUTH_TOKEN_URI & ", """ & DP_API_ENDPOINT & """, " & getDataRecordText(dataRecord) & ", queryText),
+                    f = Value.ReplaceType(functionImplementation, functionType)
+                in
+                    f
                 "
         in
             Expression.Evaluate(functionText, #shared),
@@ -118,7 +130,6 @@
                      & "]"
         in
             dataRecordText
-
 
 in
     [

@@ -37,15 +37,15 @@ CMEMPowerBIConnectorType = type function (
         type text
         meta[
             Documentation.SampleValues = {},
-            Documentation.FieldCaption = "Corporate Memory Base URI",
-            Documentation.FieldDescription = "URI to Corporate Memory e.g. http://docker.local"
+            Documentation.FieldCaption = Extension.LoadString("cmem_base_uri_field_caption"),
+            Documentation.FieldDescription = Extension.LoadString("cmem_base_uri_field_description")
         ]
     ),
 
     oauth_grant_type as (
         type text
         meta [
-            Documentation.FieldCaption = "Grant type",
+            Documentation.FieldCaption = Extension.LoadString("grant_type_uri_field_caption"),
             Documentation.AllowedValues = {"password", "client_credentials" }
         ]
     ),
@@ -54,17 +54,15 @@ CMEMPowerBIConnectorType = type function (
         type text
         meta[
             Documentation.SampleValues = {},
-            Documentation.FieldCaption = "Client ID",
-            Documentation.FieldDescription = "Fill in together with ""CMEM Base URI"" to enable password authentication flow."
+            Documentation.FieldCaption = Extension.LoadString("oauth_client_id_field_caption")
         ]
     ),
     
     optional configField as (
         type text
         meta [
-                Documentation.FieldCaption = "Config ini file",
-                Documentation.FieldDescription = "[For administrators only] Here a text block of a config ini file can be placed.
-                                                  The input from above will take precedence over the ini text if there are ambiguous values.",
+                Documentation.FieldCaption = Extension.LoadString("configField_field_caption"),
+                Documentation.FieldDescription = Extension.LoadString("configField_field_description"),
                 Documentation.SampleValues = {},
                 Formatting.IsMultiLine = true,
                 Formatting.IsCode = true
@@ -72,7 +70,7 @@ CMEMPowerBIConnectorType = type function (
     )
 
 ) as table meta [
-    Documentation.Name = "eccenca Corporate Memory"
+    Documentation.Name = Extension.LoadString("documentation_name")
 ];
 
 //--------------------------------------------------------------------------------//
@@ -163,7 +161,7 @@ ConvertQuerycatalogToRecordList = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDP
                         
                         querytext = firstRow[text], // relevant columns of querycatalog are text and name
                         name = firstRow[name],
-                        data = HandleQueryText(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querytext),
+                        data = HandleQueryText(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, name, querytext),
                         itemKind = if hasQueryParameter(querytext) then "Function" else "Table",
                         newRecord = [
                                         Name=name,
@@ -181,12 +179,12 @@ ConvertQuerycatalogToRecordList = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDP
     in
         currentOutput;
 
-HandleQueryText = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, queryText as text) as any => 
+HandleQueryText = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, dataRecord as record, queryName as text, queryText as text) as any => 
 // converts parameter queries into functions and normal queries into tables
     let
         handledQueryText=
             if hasQueryParameter(queryText)
-            then transformParameterQueryIntoFunction(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, queryText) // returns function
+            then transformParameterQueryIntoFunction(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, queryName, queryText) // returns function
             else FetchSPARQLQueryResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, queryText) // returns table
     in
         handledQueryText;
