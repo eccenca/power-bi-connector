@@ -117,14 +117,65 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="buildFunctionDocumentationLongDescription" xml:space="preserve">
+    <value>Type in the required parameters to get the result of this parameter query.
+A table named 'invoked function' arises which is the query result.
+Rename the 'invoked function' e.g. to '_#{0}'
+to distinguish the table from other function call results.</value>
+  </data>
   <data name="ButtonHelp" xml:space="preserve">
     <value>Connect to eccenca Corporate Memory</value>
   </data>
   <data name="ButtonTitle" xml:space="preserve">
     <value>eccenca Corporate Memory</value>
   </data>
+  <data name="cmem_base_uri_field_caption" xml:space="preserve">
+    <value>Corporate Memory Base URI</value>
+  </data>
+  <data name="cmem_base_uri_field_description" xml:space="preserve">
+    <value>URI to Corporate Memory e.g. http://docker.local</value>
+  </data>
+  <data name="configField_field_caption" xml:space="preserve">
+    <value>Config ini file</value>
+  </data>
+  <data name="configField_field_description" xml:space="preserve">
+    <value>[For administrators only] Here a text block of a config ini file can be placed. The input from above will take precedence over the ini text if there are ambiguous values.</value>
+  </data>
   <data name="DataSourceLabel" xml:space="preserve">
     <value>eccenca Corporate Memory</value>
+  </data>
+  <data name="documentation_name" xml:space="preserve">
+    <value>eccenca Corporate Memory</value>
+  </data>
+  <data name="error_IniFileHandler_01" xml:space="preserve">
+    <value>Ini File does not contain attributes DP_API_ENDPOINT or OAUTH_TOKEN_URI.</value>
+  </data>
+  <data name="error_IniFileHandler_02" xml:space="preserve">
+    <value>Ini File has empty attribute values.</value>
+  </data>
+  <data name="error_IniFileHandler_prefix" xml:space="preserve">
+    <value>INI_CONFIG_ERROR</value>
+  </data>
+  <data name="error_InterfaceInputHandler_01" xml:space="preserve">
+    <value>Input not valid for password flow.</value>
+  </data>
+  <data name="error_InterfaceInputHandler_02" xml:space="preserve">
+    <value>Input not valid for client credentials flow.</value>
+  </data>
+  <data name="error_InterfaceInputHandler_03" xml:space="preserve">
+    <value>Password not set.</value>
+  </data>
+  <data name="error_InterfaceInputHandler_04" xml:space="preserve">
+    <value>Username not set.</value>
+  </data>
+  <data name="error_InterfaceInputHandler_prefix" xml:space="preserve">
+    <value>USER_INPUT_ERROR</value>
+  </data>
+  <data name="grant_type_uri_field_caption" xml:space="preserve">
+    <value>Grant type</value>
+  </data>
+  <data name="oauth_client_id_field_caption" xml:space="preserve">
+    <value>Client ID</value>
   </data>
   <data name="PasswordAreaLabelText" xml:space="preserve">
     <value>Credentials</value>

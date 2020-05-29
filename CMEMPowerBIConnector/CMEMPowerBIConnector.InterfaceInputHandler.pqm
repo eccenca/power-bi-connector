@@ -44,7 +44,7 @@ let
                            then Record.AddField(emptyDataRecord, "oauth_token_uri", overlayedInput[oauth_token_uri])
                            else [])
                     otherwise
-                        error Error.Record("USER_INPUT_ERROR", "Input not valid for password flow.")
+                        error Error.Record(Extension.LoadString("error_InterfaceInputHandler_prefix"), Extension.LoadString("error_InterfaceInputHandler_01"))
                 else
                     try
                         Record.AddField(emptyDataRecord, "cmem_base_uri", overlayedInput[cmem_base_uri])
@@ -58,7 +58,7 @@ let
                            then Record.AddField(emptyDataRecord, "oauth_token_uri", overlayedInput[oauth_token_uri])
                            else [])
                     otherwise
-                        error Error.Record("USER_INPUT_ERROR", "Input not valid for client credentials flow.")
+                        error Error.Record(Extension.LoadString("error_InterfaceInputHandler_prefix"), Extension.LoadString("error_InterfaceInputHandler_02"))
         in
             configRecord,
 
@@ -72,7 +72,7 @@ let
             oauth_password_entry = authenticationRecord[Password],
             passwordPart =
                 if oauth_password_entry=""
-                then Error.Record("USER_INPUT_ERROR", "Password not set.") // error if password field is empty
+                then error Error.Record(Extension.LoadString("error_InterfaceInputHandler_prefix"), Extension.LoadString("error_InterfaceInputHandler_03")) // error if password field is empty
                 else // error field is filled
                     if oauth_grant_type="password"
                     then [oauth_password_entry=oauth_password_entry]
@@ -84,7 +84,7 @@ let
                         oauth_user = Text.Trim(authenticationRecord[Username]),
                         _oauth_user =
                             if oauth_user = "" 
-                            then Error.Record("USER_INPUT_ERROR", "Username not set.")
+                            then error Error.Record(Extension.LoadString("error_InterfaceInputHandler_prefix"), Extension.LoadString("error_InterfaceInputHandler_04"))
                             else [oauth_user=oauth_user]     
                     in
                         _oauth_user

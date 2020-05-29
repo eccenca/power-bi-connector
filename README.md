@@ -35,3 +35,7 @@ This will create the `target`folder and will zip the sources to a the file `CMEM
 ## the defaults are, if no arguments are provided:
 # ./build CMEMPowerBIConnector target CMEMPowerBIConnector
 ```
+
+## Installing with PowerBI Desktop
+
+In order to install and use the Connector copy the `CMEMPowerBIConnector.mez` file into `<Your-Windows-Documents-Folder>\Power BI Desktop\Custom Connectors`, you might need to create the folders if they are not existing.
