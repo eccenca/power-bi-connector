@@ -8,14 +8,22 @@ The build process simply zips some files and puts an `.mez` extension on the res
 
 ### Windows
 
-Run the script `build.bat <sources-folder> <target-folder>` like:
+Run the `build.bat` like:
 
 ```shell
-mkdir target
-build.bat CMEMPowerBIConnector target
+build
 ```
 
-This will build create a `CMEMPowerBIConnector.mez` file in the folder `target`.
+This will create the `target`folder and will zip the sources to a the file `CMEMPowerBIConnector-<version>.mez`.
+
+`build.bat` can take three positional arguments:
+
+```shell
+build <sources-folder> <target-folder> <file-prefix>
+
+## the defaults are, if no arguments are provided:
+# build CMEMPowerBIConnector target CMEMPowerBIConnector
+```
 
 ### Linux
 
