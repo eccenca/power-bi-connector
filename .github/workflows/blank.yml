@@ -26,7 +26,7 @@ jobs:
         id: vars
         shell: bash
         run: |
-          echo "::set-output name=VERSION::$(git describe --always --dirty)"
+          echo "::set-output name=VERSION::$(git describe --always --dirty --tags)"
 
       - name: Build project # This would actually build your project, using zip for an example artifact
         run: ./build.sh
