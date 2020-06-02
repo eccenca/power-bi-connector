@@ -10,7 +10,7 @@ set FILE_PREFIX=%~3
 if "%FILE_PREFIX%"=="" set FILE_PREFIX=eccenca-PowerBIConnector
 
 :: set version
-for /f %%i in ('git describe --always --dirty') do set VERSION=%%i
+for /f %%i in ('git describe --always --dirty --tags') do set VERSION=%%i
 
 mkdir %TARGET_PATH%
 
