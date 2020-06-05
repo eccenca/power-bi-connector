@@ -10,7 +10,7 @@ set FILE_PREFIX=%~3
 if "%FILE_PREFIX%"=="" set FILE_PREFIX=eccenca-PowerBIConnector
 
 :: set version
-for /f %%i in ('git describe --always --dirty --tags') do set VERSION=%%i
+for /f %%i in ('git describe --always --tags') do set VERSION=%%i
 
 mkdir %TARGET_PATH%
 
@@ -18,6 +18,7 @@ mkdir %TARGET_PATH%
 set TARGET_PATH=%TARGET_PATH: =` % 
 set TARGET_PATH=%TARGET_PATH:~0,-1%
 
+powershell -Command "(gc CMEMPowerBIConnector/resources.resx) -replace 'SNAPSHOT', '%VERSION%' | Out-File -encoding UTF8 CMEMPowerBIConnector/resources.resx"
 powershell Compress-Archive %TARGET_PATH%\%FILE_PREFIX%-%VERSION%.zip -Force -Path "%SOURCES_PATH%\*.png",^
 	"%SOURCES_PATH%\*.pqm",^
 	"%SOURCES_PATH%\*.resx",^
@@ -25,6 +26,7 @@ powershell Compress-Archive %TARGET_PATH%\%FILE_PREFIX%-%VERSION%.zip -Force -Pa
 	"%SOURCES_PATH%\*.m",^
 	"%SOURCES_PATH%\*.json",^
 	"%SOURCES_PATH%\*.xml"
+git checkout CMEMPowerBIConnector/resources.resx
 
 :: undo escape spaces
 set TARGET_PATH=%TARGET_PATH:` = % 

@@ -1,11 +1,11 @@
 ﻿// This file contains your Data Connector logic
 section CMEMPowerBIConnector;
 
-[DataSource.Kind="eccenca Corporate Memory (SNAPSHOT)", Publish="CMEMPowerBIConnector.Publish"]
+[DataSource.Kind="eccencaCorporateMemory", Publish="CMEMPowerBIConnector.Publish"]
 shared CMEMPowerBIConnector.Contents = Value.ReplaceType(CMEMPowerBIConnectorImpl, CMEMPowerBIConnectorType);
 
 // Data Source Kind description
-#"eccenca Corporate Memory" = [
+eccencaCorporateMemory = [
     Authentication = [
          UsernamePassword = [
             UsernameLabel = Extension.LoadString("UsernameLabelText"),

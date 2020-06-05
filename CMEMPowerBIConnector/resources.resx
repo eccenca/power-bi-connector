@@ -127,7 +127,7 @@ to distinguish the table from other function call results.</value>
     <value>Connect to eccenca Corporate Memory</value>
   </data>
   <data name="ButtonTitle" xml:space="preserve">
-    <value>eccenca Corporate Memory</value>
+    <value>eccenca Corporate Memory SNAPSHOT</value>
   </data>
   <data name="cmem_base_uri_field_caption" xml:space="preserve">
     <value>Corporate Memory Base URI</value>
