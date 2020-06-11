@@ -1,11 +1,11 @@
 ﻿// This file contains your Data Connector logic
 section CMEMPowerBIConnector;
 
-[DataSource.Kind="eccenca Corporate Memory", Publish="CMEMPowerBIConnector.Publish"]
+[DataSource.Kind="eccencaCorporateMemory", Publish="CMEMPowerBIConnector.Publish"]
 shared CMEMPowerBIConnector.Contents = Value.ReplaceType(CMEMPowerBIConnectorImpl, CMEMPowerBIConnectorType);
 
 // Data Source Kind description
-#"eccenca Corporate Memory" = [
+eccencaCorporateMemory = [
     Authentication = [
          UsernamePassword = [
             UsernameLabel = Extension.LoadString("UsernameLabelText"),
@@ -18,10 +18,10 @@ shared CMEMPowerBIConnector.Contents = Value.ReplaceType(CMEMPowerBIConnectorImp
 
 // Data Source UI publishing description
 CMEMPowerBIConnector.Publish = [
-    Beta = true,
-    Category = "Other",
+    Beta = false,
+    Category = "Database",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    LearnMoreUrl = "https://powerbi.microsoft.com/",
+    LearnMoreUrl = "https://eccenca.com/go/power-bi-connector",
     SourceImage = CMEMPowerBIConnector.Icons,
     SourceTypeImage = CMEMPowerBIConnector.Icons
 ];
