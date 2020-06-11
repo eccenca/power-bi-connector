@@ -5,11 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+### Added
+
+- link to eccenca documentation
+
+### Changed
+
+- various improvements in login and parameter handling
+- improvements in query and preview fetching
+- connector category changed to `Databases`
 
 ## [20.05] 2020-05-29
 
 ### Added
 
 - first version of the PowerBI Connector
-
