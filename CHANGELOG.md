@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
+- enforce windows line endings
 - link to eccenca documentation
 
 ### Changed
