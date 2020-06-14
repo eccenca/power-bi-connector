@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+#### Changed
+
+- nothing, will simply push tags first 
 
 ## [20.06.1] 2020-06-14
 
