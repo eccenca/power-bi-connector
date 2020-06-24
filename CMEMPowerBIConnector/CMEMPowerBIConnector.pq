@@ -195,7 +195,7 @@ shared FetchSPARQLQueryResult = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOI
             let
                 body = "query=" & Uri.EscapeDataString(queryText) & "&timeout=600000&distinct=true",
                 csv = FetchResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, body),
-                csvConvertedColumnTypes = Table.ConvertColumnTypes(csv)
+                csvConvertedColumnTypes = Table.ConvertColumnTypes(csv, "en-US")
             in
                 csvConvertedColumnTypes,
         outputTable =
