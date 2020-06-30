@@ -194,10 +194,9 @@ shared FetchSPARQLQueryResult = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOI
         tryResultRecord = try
             let
                 body = "query=" & Uri.EscapeDataString(queryText) & "&timeout=600000&distinct=true",
-                csv = FetchResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, body),
-                csvConvertedColumnTypes = Table.ConvertColumnTypes(csv, "en-US")
+                csv = FetchResult(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, body)
             in
-                csvConvertedColumnTypes,
+                csv,
         outputTable =
             if 
                 tryResultRecord[HasError]
@@ -220,7 +219,6 @@ Extension.LoadFunction = (name as text) =>
         Expression.Evaluate(asText, #shared);
 
 Table.ToNavigationTable = Extension.LoadFunction("ToNavigationTable.pqm");
-Table.ConvertColumnTypes = Extension.LoadFunction("TableConvertColumnTypes.pqm");
 
 Authentication = Extension.LoadFunction("CMEMPowerBIConnector.Authentication.pqm");
 GetAccessToken = Authentication[GetAccessToken];

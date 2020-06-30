@@ -79,9 +79,6 @@
     <Compile Include="CMEMPowerBIConnector.InterfaceInputHandler.pqm">
       <SubType>Content</SubType>
     </Compile>
-    <Compile Include="TableConvertColumnTypes.pqm">
-      <SubType>Content</SubType>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CMEMPowerBIConnector.pq">
