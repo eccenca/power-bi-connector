@@ -79,19 +79,11 @@
     <Compile Include="CMEMPowerBIConnector.InterfaceInputHandler.pqm">
       <SubType>Content</SubType>
     </Compile>
-    <Compile Include="TableConvertColumnTypes.pqm">
-      <SubType>Content</SubType>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CMEMPowerBIConnector.pq">
       <SubType>Content</SubType>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="CMEMPowerBIConnector.query.pq">
-      <SubType>Content</SubType>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <UsingTask TaskName="BuildExtension" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v12.0.dll">
