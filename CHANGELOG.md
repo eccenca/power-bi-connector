@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [20.10] 2020-11-05
+
+### Changed
+
+- bump version to 20.10
+
 ## [20.06.3] 2020-07-02
 
 ### Removed
