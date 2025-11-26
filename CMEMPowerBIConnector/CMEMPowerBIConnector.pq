@@ -104,10 +104,13 @@ GetQueriesFromCatalog = (OAUTH_TOKEN_URI as nullable text, url_DP_API_Endpoint a
                 PREFIX shui: <https://vocab.eccenca.com/shui/>
                 SELECT ?query ?name ?text
                 WHERE {
-                  ?query a shui:SparqlQuery .
-                  ?query rdfs:label ?name .
-                  ?query shui:queryText ?text .
-                  FILTER (CONTAINS(LCASE(?text), ""select""))
+                  GRAPH ?graph {
+                    ?query a shui:SparqlQuery .
+                    ?query rdfs:label ?name .
+                    ?query shui:queryText ?text .
+                    FILTER (CONTAINS(LCASE(?text), ""select""))
+                  }
+                  FILTER (?graph NOT IN (<https://vocab.eccenca.com/shacl/>))
                 }", // TODO Filter parametrized queries
         
         queryCatalog = FetchResult(OAUTH_TOKEN_URI, url_DP_API_Endpoint, dataRecord, body)
