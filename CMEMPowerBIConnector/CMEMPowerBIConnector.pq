@@ -70,7 +70,22 @@ CMEMPowerBIConnectorType = type function (
     )
 
 ) as table meta [
-    Documentation.Name = Extension.LoadString("documentation_name")
+    Documentation.Name = Extension.LoadString("documentation_name"),
+    DataSource.Path = (cmem_base_uri, oauth_grant_type, oauth_client_id, configField) =>
+        let
+            parts = try Uri.Parts(cmem_base_uri) otherwise null
+        in
+            if parts <> null and Record.HasFields(parts, "Host") then
+                parts[Host]
+            else
+                Text.TrimEnd(
+                    Text.Replace(
+                        Text.Replace(cmem_base_uri, "https://", ""),
+                        "http://",
+                        ""
+                    ),
+                    "/"
+                )
 ];
 
 //--------------------------------------------------------------------------------//
