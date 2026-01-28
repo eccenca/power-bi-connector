@@ -34,7 +34,7 @@ CMEMPowerBIConnector.Icons = [
 CMEMPowerBIConnectorType = type function (
     
     cmem_base_uri as (
-        type Uri.Type
+        Uri.Type
         meta[
             Documentation.SampleValues = {},
             Documentation.FieldCaption = Extension.LoadString("cmem_base_uri_field_caption"),
