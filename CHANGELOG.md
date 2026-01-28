@@ -9,6 +9,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 ### Changed
 
+- fix datasource name displayed
 - bump to version 25.3
 - adapt to multi query catalog feature
 - filter Shape Catalog queries
