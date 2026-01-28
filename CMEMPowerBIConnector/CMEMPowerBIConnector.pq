@@ -34,7 +34,7 @@ CMEMPowerBIConnector.Icons = [
 CMEMPowerBIConnectorType = type function (
     
     cmem_base_uri as (
-        type text
+        type Uri.Type
         meta[
             Documentation.SampleValues = {},
             Documentation.FieldCaption = Extension.LoadString("cmem_base_uri_field_caption"),
@@ -46,7 +46,8 @@ CMEMPowerBIConnectorType = type function (
         type text
         meta [
             Documentation.FieldCaption = Extension.LoadString("grant_type_uri_field_caption"),
-            Documentation.AllowedValues = {"password", "client_credentials" }
+            Documentation.AllowedValues = {"password", "client_credentials" },
+            DataSource.Path = false
         ]
     ),
     
@@ -54,7 +55,8 @@ CMEMPowerBIConnectorType = type function (
         type text
         meta[
             Documentation.SampleValues = {},
-            Documentation.FieldCaption = Extension.LoadString("oauth_client_id_field_caption")
+            Documentation.FieldCaption = Extension.LoadString("oauth_client_id_field_caption"),
+            DataSource.Path = false
         ]
     ),
     
@@ -70,22 +72,7 @@ CMEMPowerBIConnectorType = type function (
     )
 
 ) as table meta [
-    Documentation.Name = Extension.LoadString("documentation_name"),
-    DataSource.Path = (cmem_base_uri, oauth_grant_type, oauth_client_id, configField) =>
-        let
-            parts = try Uri.Parts(cmem_base_uri) otherwise null
-        in
-            if parts <> null and Record.HasFields(parts, "Host") then
-                parts[Host]
-            else
-                Text.TrimEnd(
-                    Text.Replace(
-                        Text.Replace(cmem_base_uri, "https://", ""),
-                        "http://",
-                        ""
-                    ),
-                    "/"
-                )
+    Documentation.Name = Extension.LoadString("documentation_name")
 ];
 
 //--------------------------------------------------------------------------------//
