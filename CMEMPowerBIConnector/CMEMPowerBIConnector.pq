@@ -70,7 +70,22 @@ CMEMPowerBIConnectorType = type function (
     )
 
 ) as table meta [
-    Documentation.Name = Extension.LoadString("documentation_name")
+    Documentation.Name = Extension.LoadString("documentation_name"),
+    DataSource.Path = (cmem_base_uri, oauth_grant_type, oauth_client_id, configField) =>
+        let
+            parts = try Uri.Parts(cmem_base_uri) otherwise null
+        in
+            if parts <> null and Record.HasFields(parts, "Host") then
+                parts[Host]
+            else
+                Text.TrimEnd(
+                    Text.Replace(
+                        Text.Replace(cmem_base_uri, "https://", ""),
+                        "http://",
+                        ""
+                    ),
+                    "/"
+                )
 ];
 
 //--------------------------------------------------------------------------------//
@@ -100,13 +115,18 @@ CMEMPowerBIConnectorImpl = (cmem_base_uri as text,
 
 GetQueriesFromCatalog = (OAUTH_TOKEN_URI as nullable text, url_DP_API_Endpoint as text, dataRecord as record) as table =>
     let
-        body = "query=SELECT ?query ?name ?text
-                FROM <https://ns.eccenca.com/data/queries/>
+        body = "query=PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX shui: <https://vocab.eccenca.com/shui/>
+                SELECT ?query ?name ?text
                 WHERE {
-                ?query a <https://vocab.eccenca.com/shui/SparqlQuery> ;
-                <http://www.w3.org/2000/01/rdf-schema#label> ?name ;
-                <https://vocab.eccenca.com/shui/queryText> ?text ;
-                <https://vocab.eccenca.com/shui/queryType> ""SELECT"" . }", // TODO Filter parametrized queries
+                  GRAPH ?graph {
+                    ?query a shui:SparqlQuery .
+                    ?query rdfs:label ?name .
+                    ?query shui:queryText ?text .
+                    FILTER (CONTAINS(LCASE(?text), ""select""))
+                  }
+                  FILTER (?graph NOT IN (<https://vocab.eccenca.com/shacl/>))
+                }", // TODO Filter parametrized queries
         
         queryCatalog = FetchResult(OAUTH_TOKEN_URI, url_DP_API_Endpoint, dataRecord, body)
     in
@@ -143,7 +163,16 @@ GenerateNavTable = (OAUTH_TOKEN_URI as nullable text, DP_API_ENDPOINT as text, d
 // get table in the form: {"Name", "Key", "Data", "ItemKind", "ItemName", "IsLeaf"}
     let
         recordList = ConvertQuerycatalogToRecordList(OAUTH_TOKEN_URI, DP_API_ENDPOINT, dataRecord, querycatalog, {}),
-        preparedNavtable = Table.FromRecords(recordList),
+        preparedNavtable = Table.FromRecords(
+            recordList,
+            type table [
+                Name = text,
+                Data = any,
+                ItemKind = text,
+                ItemName = text,
+                IsLeaf = logical
+            ]
+        ),
         navTable = Table.ToNavigationTable(preparedNavtable, {"Name"}, "Name", "Data", "ItemKind", "ItemName", "IsLeaf")
     in
         navTable;

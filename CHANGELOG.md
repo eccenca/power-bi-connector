@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [25.3.0] 2026-01-28
+
+### Changed
+
+- bump to version 25.3
+- adapt to multi query catalog feature
+- filter Shape Catalog queries
+
 ## [20.10] 2020-11-05
 
 ### Changed
