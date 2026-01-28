@@ -17,9 +17,10 @@ let
             shortedUiInput = deleteEmptyFieldsFromRecord(completeUiInput),
             
             overlayedInput = overlayUserInputAndIniFile(shortedUiInput, configField), // shortedUiInput and configField can be empty
+            overlayedInputWithDefaults = applyDefaultClientId(overlayedInput, oauth_grant_type),
             
             // Check if overlayedInput is valid and build dataRecord
-            dataRecord = buildDataRecord(overlayedInput, oauth_grant_type)   
+            dataRecord = buildDataRecord(overlayedInputWithDefaults, oauth_grant_type)   
         in
             dataRecord,
 
@@ -122,7 +123,22 @@ let
             configRecord = if configField is null then [] else readConfigRecordFromIni(configField), // throws errors if config file is not valid
             overlayedInput = Record.Combine({configRecord, uiInput}) // interface input overwrites input of config file
         in
-            overlayedInput
+            overlayedInput,
+
+    applyDefaultClientId = (inputRecord as record, oauth_grant_type as text) as record =>
+        let
+            defaultClientId = "cmem-service-account",
+            hasClientId = Record.HasFields(inputRecord, "oauth_client_id"),
+            clientIdValue =
+                if hasClientId
+                then Text.Trim(inputRecord[oauth_client_id])
+                else "",
+            needsDefault =
+                oauth_grant_type = "client_credentials" and clientIdValue = ""
+        in
+            if needsDefault
+            then Record.AddField(inputRecord, "oauth_client_id", defaultClientId)
+            else inputRecord
 
 in
     [
@@ -131,5 +147,6 @@ in
         getPasswordRecordIfExists = getPasswordRecordIfExists,
         deleteEmptyFieldsFromRecord = deleteEmptyFieldsFromRecord,
         Record.Transform = Record.Transform,
-        overlayUserInputAndIniFile = overlayUserInputAndIniFile
+        overlayUserInputAndIniFile = overlayUserInputAndIniFile,
+        applyDefaultClientId = applyDefaultClientId
     ]
