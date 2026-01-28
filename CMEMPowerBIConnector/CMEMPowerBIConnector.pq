@@ -54,7 +54,7 @@ CMEMPowerBIConnectorType = type function (
     oauth_client_id as (
         type text
         meta[
-            Documentation.SampleValues = {},
+            Documentation.SampleValues = {"cmem-service-account"},
             Documentation.FieldCaption = Extension.LoadString("oauth_client_id_field_caption"),
             DataSource.Path = false
         ]
