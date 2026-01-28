@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
 
+### Changed
+
+- bump to version 25.3
+- adapt to multi query catalog feature
+- filter Shape Catalog queries
+
 ## [20.10] 2020-11-05
 
 ### Changed
